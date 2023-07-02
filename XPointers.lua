@@ -118,8 +118,6 @@ XPointer.split = function(xpointer, document)
   while not done do
     local new_xp = (XPointer.trim(xpointer) .. "/text()[" .. i .. "]")
     local text = document.getTextFromXPointer(new_xp)
-    logger.info(new_xp)
-    logger.info(text)
     i = (1 + i)
     if (nil == text) then
       done = true
@@ -151,7 +149,7 @@ XPointer.fromUtfPos = function(beg, len, base_xp, document)
   for i = 0, (len - 1) do
     saw_rb = nil
     start = document:getNextVisibleChar(start)
-    while string.find(start, "ruby/rt") do
+    while (string.find(start, "ruby/rt") or string.find(start, "span")) do
       start = document:getNextVisibleChar(start)
     end
     while (nil == document:getTextFromXPointers(start, document:getNextVisibleChar(start))) do

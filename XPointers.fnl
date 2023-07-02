@@ -2,17 +2,6 @@
 (local logger (require :logger))
 (local XPointer {})
 
-;; (let [(start end) (string.find xpointer "DocFragment[" 1 true)
-;;       (start_e end_e) (string.find xpointer "]/" end true)
-;;       ]
-;; (logger.info (string.match (string.match xpointer "DocFragment%[%d+%]") "%d+"))
-;;   (logger.info start)
-;;   (logger.info end)
-;;   (logger.info start_e)
-;;   (logger.info end_e)
-;;   (logger.info (string.sub xpointer end start_e))
-;; )
-
 ;;TODO handle images and stuff
 ;;note: if is image, docfragment will never have ps apprently?
 
@@ -50,14 +39,6 @@
 
 (fn XPointer.xpointer-is-img-p [xpointer]
   (not= nil (string.find xpointer :img)))
-
-;; (fn XPointer.decrement [xpointer]
-;;   (let [p (tonumber (XPointer.getP xpointer))
-;;         pm1 (- p 1)
-;;         ]
-;;     (XPointer.createWithP xpointer pm1)
-;;     )
-;;   )
 
 ;;NOTE can create wrong xpaths (that don't exist in the document)
 (fn XPointer.increment-naive [xpointer]
@@ -103,20 +84,7 @@
                                          (+ 1
                                             (XPointer.getDocFragment xpointer))
                                          "]")))
-  ;; (let [text (document:getTextFromXPointers xpointer (XPointer.))])
   )
-
-;; (fn XPointer.get-next-p-docfragment [xpointer document max]
-;;   (var done? false)
-;;   (var next (XPointer.getDocFragment xpointer))
-
-;;   (while (not done?)
-;;     (if (XPointer.xpointer-is-img-p next document)
-;;         (set next (XPointer.get-next-docfragment xpointer))
-;;         ()
-;;         )
-;;     )
-;;   )
 
 (fn XPointer.list-xpointers-differentDoc [start end document]
   (var done? false)
@@ -158,8 +126,6 @@
   (while (not done)
     (let [new_xp (.. (XPointer.trim xpointer) "/text()[" i "]")
           text (document.getTextFromXPointer new_xp)]
-      (logger.info new_xp)
-      (logger.info text)
       (set i (+ 1 i))
       (when (= nil text)
         (set done true)))))
@@ -196,7 +162,7 @@
   (for [i 0 (- len 1)]
     (set saw_rb nil)
     (set start (document:getNextVisibleChar start))
-    (while (string.find start :ruby/rt)
+    (while (or (string.find start :ruby/rt) (string.find start :span)) ;; TODO some times stuff act weird eg page 21 of laika, because of the []?
       (set start (document:getNextVisibleChar start)))
     (while (= nil (document:getTextFromXPointers start (document:getNextVisibleChar start)) )
       (set saw_rb :true)

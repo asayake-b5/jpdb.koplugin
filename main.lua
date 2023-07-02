@@ -94,9 +94,6 @@ end
 Hello.onWordLookedUp = function(self, word, title, is_manual)
   return logger.info("wordLookedUp")
 end
-local function test2return()
-  return "one", "two"
-end
 Hello.paintRect = function(self, bb, x, y, v, jpdb_state)
   local lighten_factor = nil
   local underline = nil
@@ -131,28 +128,16 @@ Hello.paintRect = function(self, bb, x, y, v, jpdb_state)
   end
 end
 Hello.paintTo = function(self, bb, x, y)
-  logger.info((self["xp-buffer"])["/body/DocFragment[15]/body/div/p[9]"])
-  logger.info((self.document):getHTMLFromXPointer("/body/DocFragment[15]/body/div/p[9]"))
-  local start = "/body/DocFragment[15]/body/div/p[9]"
-  for i = 0, 60 do
-    logger.info(i)
-    start = (self.ui.document):getNextVisibleChar(start)
-    while string.find(start, "ruby/rt") do
-      start = (self.ui.document):getNextVisibleChar(start)
-    end
-    logger.info(start)
-    logger.info((self.document):getTextFromXPointers(start, (self.ui.document):getNextVisibleChar(start)))
-  end
   for xpointer, words in pairs(self["xp-buffer"]) do
     for i, word in ipairs(words) do
-      local start0
+      local start
       do
         local t_10_ = word
         if (nil ~= t_10_) then
           t_10_ = (t_10_)[2]
         else
         end
-        start0 = t_10_
+        start = t_10_
       end
       local len
       do
@@ -182,7 +167,7 @@ Hello.paintTo = function(self, bb, x, y)
         return t_16_
       end
       jpdb_state = client["parse-state"](_17_())
-      local beg_xp, end_xp = xp.fromUtfPos(start0, len, xpointer, self.document)
+      local beg_xp, end_xp = xp.fromUtfPos(start, len, xpointer, self.document)
       local rect = (self.ui.document):getScreenBoxesFromPositions(beg_xp, end_xp, true)
       if rect then
         for _0, v in ipairs(rect) do
