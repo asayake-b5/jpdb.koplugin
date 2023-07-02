@@ -1,0 +1,15 @@
+
+* How To Use
+
+* Ramdam of ideas/Todos:
+- Support continuous mode too because I think it might not be able to work easy
+  https://github.com/koreader/koreader/blob/f7d633cc3d0efd273a875132ac2de4fb4754dd02/frontend/apps/reader/modules/readerhighlight.lua#L738 good reference for going on posiition, screen size etc
+- Toggle/Detoggle button (only on the drawing part?)
+  - Also gesture
+- Let user select how to style each type of word
+- Log words in offline mode to mine later when online
+- Modify the dictionary widget to include a bar above, displaying the top x/status, instead of hacking the dict title
+- if api ever allows it, dump dictionary definition in custom definition
+- if mash getnextvisiblechar not work, back to xml parsing
+  https://github.com/Phrogz/SLAXML
+  http://lua-users.org/wiki/LuaXml
