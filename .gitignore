@@ -1,0 +1,4 @@
+/documentinfostuff
+*.lua
+!config.lua
+!_meta.lua
