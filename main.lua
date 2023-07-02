@@ -14,11 +14,11 @@ local Geom = require("ui/geometry")
 local Blitbuffer = require("ffi/blitbuffer")
 local HorizontalGroup = require("ui/widget/horizontalgroup")
 local xp = require("XPointers")
-local Hello = Widget_container:extend({name = "jpdb", ["xp-buffer"] = {}, currentPage = nil, is_doc_only = false})
-Hello.onDispatcherRegisterActions = function(self)
+local Jpdb = Widget_container:extend({name = "jpdb", ["xp-buffer"] = {}, currentPage = nil, is_doc_only = false})
+Jpdb.onDispatcherRegisterActions = function(self)
   return Dispatcher:registerAction("helloworld_action", {category = "none", event = "HelloWorld", general = true, title = _("Hello World")})
 end
-Hello.addToMainMenu = function(self, menu_items)
+Jpdb.addToMainMenu = function(self, menu_items)
   local function _1_()
     return UIManager:show(InfoMessage:new({text = _("Helugin worienild")}))
   end
@@ -55,46 +55,46 @@ local function new_tweak_buttons_func(popup_dict, buttons)
     return nil
   end
 end
-Hello.onReaderReady = function(self)
+Jpdb.onReaderReady = function(self)
   return (self.view):registerViewModule("jpdb", self)
 end
-Hello.init = function(self)
+Jpdb.init = function(self)
   client:init(self.path)
   self.onDispatcherRegisterActions()
   do end (self.ui.menu):registerToMainMenu(self)
   DictQuickLookup.tweak_buttons_func = new_tweak_buttons_func
   return nil
 end
-Hello["get-page-XPointers"] = function(self, page)
+Jpdb["get-page-XPointers"] = function(self, page)
   return xp["list-xpointers-between"]((self.document):getPageXPointer(page), (self.document):getPageXPointer((1 + page)), self.ui.document)
 end
-Hello["fill-XPointers-text"] = function(self, table)
+Jpdb["fill-XPointers-text"] = function(self, table)
   for key, value in pairs(table) do
     table[key] = xp.getTextFromXPointer(key, self.ui.document)
   end
   return nil
 end
-Hello.parsePage = function(self, page)
+Jpdb.parsePage = function(self, page)
   local aa = xp["list-xpointers-between"]((self.document):getXPointer(), (self.document):getPageXPointer((1 + page)), self.ui.document)
   self["fill-XPointers-text"](self, aa)
   logger.info(aa)
   return client:parseXPointers(aa)
 end
-Hello["merge-xparser-tables"] = function(self, table)
+Jpdb["merge-xparser-tables"] = function(self, table)
   for k, v in pairs(table) do
     self["xp-buffer"][k] = v
   end
   return nil
 end
-Hello.onPageUpdate = function(self, page)
+Jpdb.onPageUpdate = function(self, page)
   self.currentPage = page
   self["merge-xparser-tables"](self, self:parsePage(page))
   return logger.info(self["xp-buffers"])
 end
-Hello.onWordLookedUp = function(self, word, title, is_manual)
+Jpdb.onWordLookedUp = function(self, word, title, is_manual)
   return logger.info("wordLookedUp")
 end
-Hello.paintRect = function(self, bb, x, y, v, jpdb_state)
+Jpdb.paintRect = function(self, bb, x, y, v, jpdb_state)
   local lighten_factor = nil
   local underline = nil
   do
@@ -127,7 +127,7 @@ Hello.paintRect = function(self, bb, x, y, v, jpdb_state)
     return nil
   end
 end
-Hello.paintTo = function(self, bb, x, y)
+Jpdb.paintTo = function(self, bb, x, y)
   for xpointer, words in pairs(self["xp-buffer"]) do
     for i, word in ipairs(words) do
       local start
@@ -179,4 +179,4 @@ Hello.paintTo = function(self, bb, x, y)
   end
   return nil
 end
-return Hello
+return Jpdb

@@ -15,19 +15,19 @@
 (local HorizontalGroup (require :ui/widget/horizontalgroup))
 (local xp (require :XPointers))
 
-(local Hello (Widget-container:extend {:is_doc_only false
+(local Jpdb (Widget-container:extend {:is_doc_only false
                                        :name :jpdb
                                        :xp-buffer {}
                                        :currentPage nil}))
 
-(fn Hello.onDispatcherRegisterActions [self]
+(fn Jpdb.onDispatcherRegisterActions [self]
   (Dispatcher:registerAction :helloworld_action
                              {:category :none
                               :event :HelloWorld
                               :general true
                               :title (_ "Hello World")}))
 
-(fn Hello.addToMainMenu [self menu-items]
+(fn Jpdb.addToMainMenu [self menu-items]
   (set menu-items.hello_world
        {:callback (fn []
                     (UIManager:show (InfoMessage:new {:text (_ "Helugin worienild")})))
@@ -65,27 +65,27 @@
                                           (. parsed.state 1) ")"))
       (table.insert buttons 1 [add_to_deck review]))))
 
-(fn Hello.onReaderReady [self]
+(fn Jpdb.onReaderReady [self]
   ;; self.ui.menu:registerToMainMenu(self)
   (self.view:registerViewModule :jpdb self))
 
-(fn Hello.init [self]
+(fn Jpdb.init [self]
   (client:init self.path)
   (self.onDispatcherRegisterActions)
   ;; (Hello:debuggingstuff)
   (self.ui.menu:registerToMainMenu self)
   (set DictQuickLookup.tweak_buttons_func new_tweak_buttons_func))
 
-(fn Hello.get-page-XPointers [self page]
+(fn Jpdb.get-page-XPointers [self page]
   (xp.list-xpointers-between (self.document:getPageXPointer page)
                              (self.document:getPageXPointer (+ 1 page))
                              self.ui.document))
 
-(fn Hello.fill-XPointers-text [self table]
+(fn Jpdb.fill-XPointers-text [self table]
   (each [key value (pairs table)]
     (tset table key (xp.getTextFromXPointer key self.ui.document))))
 
-(fn Hello.parsePage [self page]
+(fn Jpdb.parsePage [self page]
   (local aa (xp.list-xpointers-between (self.document:getXPointer)
                                        (self.document:getPageXPointer (+ 1 page))
                                        self.ui.document))
@@ -93,18 +93,18 @@
   (logger.info aa)
   (client:parseXPointers aa))
 
-(fn Hello.merge-xparser-tables [self table]
+(fn Jpdb.merge-xparser-tables [self table]
   (each [k v (pairs table)]
     (tset self.xp-buffer k v)))
 
 ;;TODO  maybe parse a few pages at once, etc
-(fn Hello.onPageUpdate [self page]
+(fn Jpdb.onPageUpdate [self page]
   (set self.currentPage page)
   (self:merge-xparser-tables (self:parsePage page))
   (logger.info self.xp-buffers))
 
 ;; TODO later ignore for now
-;; (fn Hello.onPosUpdate [self pos]
+;; (fn Jpdb.onPosUpdate [self pos]
 ;;   ;; (logger.info "new pos")
 ;;   ;; (logger.info pos)
 ;;   ;; (logger.info "self.view.doc")
@@ -119,7 +119,7 @@
 ;;   ;; (logger.info (self.view.document:findText "時間"))
 ;;   )
 
-(fn Hello.onWordLookedUp [self word title is_manual]
+(fn Jpdb.onWordLookedUp [self word title is_manual]
   (logger.info :wordLookedUp)
   ;; (logger.info word)
   ;; (logger.info title)
@@ -135,7 +135,7 @@
   ;; end
   )
 
-(fn Hello.paintRect [self bb x y v jpdb-state]
+(fn Jpdb.paintRect [self bb x y v jpdb-state]
   (var lighten-factor nil)
   (var underline nil)
   ;; (when (= nil lighten-factor) (logger.info "nil"))
@@ -153,7 +153,7 @@
     (set self.view.highlight.lighten_factor lighten-factor)
     (self.view:drawHighlightRect bb x y v :lighten)))
 
-(fn Hello.paintTo [self bb x y]
+(fn Jpdb.paintTo [self bb x y]
   (each [xpointer words (pairs self.xp-buffer)]
     ;;TODO (when xpointer in page etc)
     (each [i word (ipairs words)]
@@ -170,4 +170,4 @@
           )))
     ))
 
-Hello
+Jpdb
