@@ -10,8 +10,6 @@
 
 (fn JPDBClient.init [self path]
   (tset (require :socket.http) :TIMEOUT 1)
-  (local Spore (require :Spore))
-  (set self.client (Spore.new_from_spec (.. path :/jpdb_api.json) {}))
   (local config (require :config))
   (self.client:enable :Auth.Bearer {:bearer_token config.api_key})
   (self.client:enable :Format.JSON))
