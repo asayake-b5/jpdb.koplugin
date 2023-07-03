@@ -16,6 +16,9 @@
 (local dictionary (require :dictionary))
 (local xp (require :XPointers))
 (local Deinflector (require :deinflector))
+(local AddToDeckWidget (require :adddeckwidget))
+(local ReviewWidget (require :reviewwidget))
+
 (local SingleInstanceDeinflector (Deinflector:new {}))
 
 (local Jpdb (Widget-container:extend {:is_doc_only false
@@ -39,27 +42,29 @@
         :text (_ "Hello World")}))
 
 ;; TODO functionnal program this, with function, id etc parameters
-(fn add_to_deck_thing [popup_dict]
+(fn add_to_deck_thing [popup_dict vid sid]
   {:callback (fn []
-               (UIManager:show (InfoMessage:new {:text (_ (.. :helugin
-                                                              popup_dict.word))})))
+               (UIManager:show (AddToDeckWidget:init popup_dict vid sid)))
    :font_bold true
    :id :add_to_deck
    :text (_ "Add to deck")})
 
-(fn review_thing [popup_dict]
+(fn review_thing [popup_dict vid sid]
   {:id :review
    :text (_ :Review)
    :font_bold true
    :callback (fn []
-               (UIManager:show (InfoMessage:new {:text (_ "Helugin wori")}))
-               (each [k v (ipairs popup_dict.window_list)] (logger.info k)))
+               (UIManager:show (ReviewWidget:init popup_dict vid sid)))
    :hold_callback (fn [])
    ;;UIManager:show(self:show_config_widget(popup_dict)) end,
    })
 
-;;TODO change this to put it in the onWordLookup
+;;TODO if word is blacklist make word be remove from blacklist etc
+;;TODO same with never forget
+;;TODO reparse Xpointer after having done a review (to update the change)
+;;TODO or edit the thing manually YOLO style
 (fn new_tweak_buttons_func [self popup_dict buttons]
+  ;;TODO WHEN FOUND ETC GREY THE BUTTONS AND STUFF IDK
   (var entry (dictionary.find (?. self.xp-buffer
                                     (xp.trim self.ui.highlight.selected_text_start_xpointer))
                                 (self.deinflector:deinflect popup_dict.word)))
@@ -81,7 +86,7 @@
   ;; (when popup_dict.displaynb
   ;;   (popup_dict.displaynb_text:setText (+ 1 (tonumber popup_dict.displaynb))))
   (local add_to_deck (add_to_deck_thing popup_dict (?. (?. entry 1) 1) (?. (?. entry 1) 2)))
-  (local review (review_thing popup_dict))
+  (local review (review_thing popup_dict (?. (?. entry 1) 1) (?. (?. entry 1) 2)))
       (table.insert buttons 1 [add_to_deck review])
   ;; (popup_dict:update)
   )
@@ -91,7 +96,7 @@
   (self.view:registerViewModule :jpdb self))
 
 (fn Jpdb.init [self]
-  (client:init self.path)
+  ;; (client:init self.path)
   (self.onDispatcherRegisterActions)
   ;; (Hello:debuggingstuff)
   (self.ui.menu:registerToMainMenu self)

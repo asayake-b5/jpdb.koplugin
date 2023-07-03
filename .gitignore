@@ -3,3 +3,5 @@
 !config.lua
 !_meta.lua
 !deinflector.lua
+!htmlparser/*
+!htmlparser.lua

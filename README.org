@@ -8,8 +8,9 @@
   - Also gesture
 - Let user select how to style each type of word
 - Log words in offline mode to mine later when online
-- Modify the dictionary widget to include a bar above, displaying the top x/status, instead of hacking the dict title
 - if api ever allows it, dump dictionary definition in custom definition
+- accound for the word being never forget/blacklisted already
+- check how the review stuff works for locked/redundant words
 - if mash getnextvisiblechar not work, back to xml parsing
   https://github.com/Phrogz/SLAXML
   http://lua-users.org/wiki/LuaXml
@@ -17,3 +18,4 @@
 * License
 GPL3.0, like the rest of koreader.
 A special thank you to [[https://www.cyphar.com/][cyphar]] for the deinflector code.
+Thanks to [[https://github.com/msva/lua-htmlparser][msva]] for htmlparser
