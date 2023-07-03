@@ -13,12 +13,16 @@
 (local Geom (require :ui/geometry))
 (local Blitbuffer (require :ffi/blitbuffer))
 (local HorizontalGroup (require :ui/widget/horizontalgroup))
+(local dictionary (require :dictionary))
 (local xp (require :XPointers))
+(local Deinflector (require :deinflector))
+(local SingleInstanceDeinflector (Deinflector:new {}))
 
 (local Jpdb (Widget-container:extend {:is_doc_only false
-                                       :name :jpdb
-                                       :xp-buffer {}
-                                       :currentPage nil}))
+                                      :name :jpdb
+                                      :deinflector SingleInstanceDeinflector
+                                      :xp-buffer {}
+                                      :currentPage nil}))
 
 (fn Jpdb.onDispatcherRegisterActions [self]
   (Dispatcher:registerAction :helloworld_action
@@ -55,15 +59,32 @@
    })
 
 ;;TODO change this to put it in the onWordLookup
-(fn new_tweak_buttons_func [popup_dict buttons]
-  (local add_to_deck (add_to_deck_thing popup_dict))
+(fn new_tweak_buttons_func [self popup_dict buttons]
+  (var entry (dictionary.find (?. self.xp-buffer
+                                    (xp.trim self.ui.highlight.selected_text_start_xpointer))
+                                (self.deinflector:deinflect popup_dict.word)))
+  (table.insert popup_dict.results 2 (. popup_dict.results 1))
+  ;; Duplicate dict to n2
+  ;;FIXME doesn't work when only one dict available
+  ;;works if you press the thing instead of the button which is just locked, maybe something is doable to unclog it
+  (tset popup_dict.results 2 (dictionary.JPDBToDict entry))
+  ;;   ;; (logger.info (self.ui.highlight:getSelectedWordContext 15 ) ;;be careful, returns 2 thinigies?
+  ;;   ;; )
+  ;;   ;;   if not settings.enabled and not is_manual then return end
+  ;;   ;; if self.widget and self.widget.current_lookup_word == word then return true end
+  ;;   ;; local prev_context
+  ;;   ;; local next_context
+  ;;   ;; if settings.with_context and self.ui.highlight then
+  ;;   ;;     prev_context, next_context = self.ui.highlight:getSelectedWordContext(15)
+  ;; (set popup_dict.text_widget.text_widget.text :testest)
+  ;;FIXME slight improvement to the number of dicts, update it by parsing it (it's like "1/2" etc)
+  ;; (when popup_dict.displaynb
+  ;;   (popup_dict.displaynb_text:setText (+ 1 (tonumber popup_dict.displaynb))))
+  (local add_to_deck (add_to_deck_thing popup_dict (?. (?. entry 1) 1) (?. (?. entry 1) 2)))
   (local review (review_thing popup_dict))
-  (let [parsed (client:parse popup_dict.word)
-        dict_title (. (. popup_dict.results popup_dict.dict_index) :dict)]
-    (when parsed
-      (popup_dict.dict_title:setTitle (.. dict_title "(Top " parsed.rank ", "
-                                          (. parsed.state 1) ")"))
-      (table.insert buttons 1 [add_to_deck review]))))
+      (table.insert buttons 1 [add_to_deck review])
+  ;; (popup_dict:update)
+  )
 
 (fn Jpdb.onReaderReady [self]
   ;; self.ui.menu:registerToMainMenu(self)
@@ -74,7 +95,7 @@
   (self.onDispatcherRegisterActions)
   ;; (Hello:debuggingstuff)
   (self.ui.menu:registerToMainMenu self)
-  (set DictQuickLookup.tweak_buttons_func new_tweak_buttons_func))
+  (set DictQuickLookup.tweak_buttons_func (partial new_tweak_buttons_func self)))
 
 (fn Jpdb.get-page-XPointers [self page]
   (xp.list-xpointers-between (self.document:getPageXPointer page)
@@ -119,22 +140,6 @@
 ;;   ;; (logger.info (self.view.document:findText "時間"))
 ;;   )
 
-(fn Jpdb.onWordLookedUp [self word title is_manual]
-  (logger.info :wordLookedUp)
-  ;; (logger.info word)
-  ;; (logger.info title)
-  ;; (logger.info self.ui.highlight)
-  ;; (logger.info (self.ui.highlight:getSelectedWordContext 15 ) ;;be careful, returns 2 thinigies?
-  ;; )
-  ;;   if not settings.enabled and not is_manual then return end
-  ;; if self.widget and self.widget.current_lookup_word == word then return true end
-  ;; local prev_context
-  ;; local next_context
-  ;; if settings.with_context and self.ui.highlight then
-  ;;     prev_context, next_context = self.ui.highlight:getSelectedWordContext(15)
-  ;; end
-  )
-
 (fn Jpdb.paintRect [self bb x y v jpdb-state]
   (var lighten-factor nil)
   (var underline nil)
@@ -155,7 +160,9 @@
 
 (fn Jpdb.paintTo [self bb x y]
   (each [xpointer words (pairs self.xp-buffer)]
+    ;; (dictionary.JPDBToDict (. words 1))
     ;;TODO (when xpointer in page etc)
+    ;;isXPointerInCurrentPage = function() --[[..skipped..]] end --[[function: 0x7f71499d7270]],
     (each [i word (ipairs words)]
       (let [start (?. word 2)
             len (?. word 3)
@@ -166,8 +173,6 @@
                (self.ui.document:getScreenBoxesFromPositions beg_xp end_xp true))
         (when rect
           (each [_ v (ipairs rect)]
-            (self:paintRect bb x y v jpdb_state))
-          )))
-    ))
+            (self:paintRect bb x y v jpdb_state)))))))
 
 Jpdb
