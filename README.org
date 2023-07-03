@@ -13,3 +13,7 @@
 - if mash getnextvisiblechar not work, back to xml parsing
   https://github.com/Phrogz/SLAXML
   http://lua-users.org/wiki/LuaXml
+
+* License
+GPL3.0, like the rest of koreader.
+A special thank you to [[https://www.cyphar.com/][cyphar]] for the deinflector code.
