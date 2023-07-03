@@ -1,5 +1,14 @@
 
 * How To Use
+- Download the release zip here: (soon)
+- Extract to the koreader plugin folder, such as a jpdb.koplugin folder should coexist along other folders like japanese.koplugin
+- Edit config.lua, filling the fields
+    - You can get the deck id by clicking the deck you want in jpdb, and getting it from the url.
+      For "https://jpdb.io/deck?id=85", input 85
+    - The api key can be found at [[https://jpdb.io/settings][the bottom of the settings page]]
+    - The sid is a little trickier to get.
+      Head over to jpdb, open the developer console (F12 on Firefox, Ctrl-i on chrome), open the storage tab, click on cookies, jpdb.io and copy the "sid" value.
+- Enable the plugin in koreader
 
 * Ramdam of ideas/Todos:
 - Support continuous mode too because I think it might not be able to work easy
