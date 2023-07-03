@@ -32,7 +32,7 @@ jobs:
           apt install zip
       - name: zip up
         run:
-          zip jpdb.koplugin.zip *.lua
+          zip jpdb.koplugin.zip *.lua yomichan-deinflect.json htmlparser
       - name: release
         uses: https://gitea.asaserv.ovh/bastien_v/release-action@main
         with:
