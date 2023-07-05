@@ -10,6 +10,8 @@
 ;;(works even if next one is image, we can crop to like /body/docfragment[n+1])
 
 (fn XPointer.getP [xpointer]
+  ;; (logger.info :getP)
+  ;; (logger.info xpointer)
   (string.match (string.match xpointer "p%[%d+%]") "%d+"))
 
 (fn XPointer.getDocFragment [xpointer]
@@ -29,16 +31,21 @@
 ;;     maybe YOLO p==1 -> return true
 ;;     TODO actually getTextFromXPointer might be enough
 ;;     FIXME redo this
-(fn XPointer.xpointer-exists-p [xpointer document]
-  (local xpointer (XPointer.trim xpointer))
-  (let [p (tonumber (XPointer.getP xpointer))
-        pm1 (- p 1)
-        text (document:getTextFromXPointers (XPointer.createWithP xpointer pm1)
-                                            xpointer)]
-    (or (not (= nil text)) (= 1 p))))
+;; (fn XPointer.xpointer-exists-p [xpointer document]
+;;   (local xpointer (XPointer.trim xpointer))
+;;   (let [p (tonumber (XPointer.getP xpointer))
+;;         pm1 (- p 1)
+;;         text (document:getTextFromXPointers (XPointer.createWithP xpointer pm1)
+;;                                             xpointer)]
+;;     (or (not (= nil text)) (= 1 p))))
 
-(fn XPointer.xpointer-is-img-p [xpointer]
-  (not= nil (string.find xpointer :img)))
+;;better
+(fn XPointer.xpointer-exists? [xpointer document]
+  (document:isXPointerInDocument xpointer))
+
+(fn XPointer.xpointer-is-img? [xpointer]
+  (or (not= nil (string.find xpointer :img))
+      (not= nil (string.find xpointer :svg))))
 
 ;;NOTE can create wrong xpaths (that don't exist in the document)
 (fn XPointer.increment-naive [xpointer]
@@ -47,15 +54,21 @@
     (XPointer.createWithP xpointer pp1)))
 
 (fn XPointer.increment [xpointer document]
-  (local next (XPointer.increment-naive xpointer))
-  (if (XPointer.xpointer-exists-p next document)
+  (local docf (tonumber (XPointer.getDocFragment xpointer)))
+  (local next (if (XPointer.xpointer-is-img? xpointer)
+                  (string.format "/body/DocFragment[%d]/body/div/p[1]" (+ 1 docf))
+                  (XPointer.increment-naive xpointer)))
+  (local new_docf (tonumber (XPointer.getDocFragment next)))
+  ;; (logger.info next)
+  (if (XPointer.xpointer-exists? next document)
       next
-      nil))
+      (string.format "/body/DocFragment[%d]" (+ 1 new_docf))) ;;TODO wrong?
+  )
 
-(fn XPointer.list-in-doc-fragment-from-xp [xpointer document]
-  (var next xpointer)
-  (while (not (= nil next))
-    (set next (XPointer.increment next document))))
+;; (fn XPointer.list-in-doc-fragment-from-xp [xpointer document]
+;;   (var next xpointer)
+;;   (while (not (= nil next))
+;;     (set next (XPointer.increment next document))))
 
 (fn XPointer.same-docFragment-p [x1 x2]
   (let [doc1 (tonumber (XPointer.getDocFragment x1))
@@ -76,15 +89,8 @@
     (+ 1 current_doc)))
 
 (fn XPointer.getTextFromXPointer [xpointer document]
-  (local next (XPointer.increment xpointer document))
-  (if (not= next nil)
-      (document:getTextFromXPointers xpointer next)
-      (document:getTextFromXPointers xpointer
-                                     (.. "/body/DocFragment["
-                                         (+ 1
-                                            (XPointer.getDocFragment xpointer))
-                                         "]")))
-  )
+  (document:getTextFromXPointers xpointer
+                                 (XPointer.increment xpointer document)))
 
 (fn XPointer.list-xpointers-differentDoc [start end document]
   (var done? false)
@@ -93,26 +99,59 @@
   (local end_doc (XPointer.getDocFragment end))
   (while (not done?)
     (tset return next [])
-    (set next (XPointer.increment-naive next))
-    (when (not (XPointer.xpointer-exists-p next document))
-      (if (= end_doc (XPointer.getDocFragment next))
-          (set done? true)
-          (if (XPointer.xpointer-is-img-p end)
-              (set done? true)
-              (let [next_doc (+ 1 (XPointer.getDocFragment next))]
-                (set next (XPointer.createWithP (XPointer.createWithDocFragment next
-                                                                                next_doc)
-                                                1)))))))
+    ;; (logger.info done?)
+    (set next (XPointer.increment next document))
+    (if (>= end_doc (XPointer.getDocFragment next))
+        (set done? true)
+        (if (XPointer.xpointer-is-img? end)
+            (set done? true)
+            (let [next_doc (+ 1 (XPointer.getDocFragment next))]
+              (set next (XPointer.createWithP (XPointer.createWithDocFragment next
+                                                                              next_doc)
+                                              1))))))
   return)
+
+;; (fn XPointer.list-xpointers-differentDoc [start end document]
+;;   (var done? false)
+;;     (logger.info start)
+;;     (logger.info end)
+
+;;   (var next start)
+;;   (var return {})
+;;   (local end_doc (XPointer.getDocFragment end))
+;;   (while (not done?)
+;;     (tset return next [])
+;;     (set next (XPointer.increment-naive next))
+;;     (logger.info next)
+;;     (when (not (XPointer.xpointer-exists? next document))
+;;       (if (= end_doc (XPointer.getDocFragment next))
+;;           (set done? true)
+;;           (if (XPointer.xpointer-is-img? end)
+;;               (set done? true)
+;;               (let [next_doc (+ 1 (XPointer.getDocFragment next))]
+;;                 (set next (XPointer.createWithP (XPointer.createWithDocFragment next
+;;                                                                                 next_doc)
+;;                                                 1)))))))
+;;   return)
 
 ;;FIXME doesn't work kinda
 ;;also I think useless now
 (fn XPointer.list-xpointers-between [start end document]
-  (let [start (XPointer.trim start)
-        end (XPointer.trim end)]
-    (if (XPointer.same-docFragment-p start end)
-        (XPointer.list-xpointers-sameDoc start end)
-        (XPointer.list-xpointers-differentDoc start end document))))
+  ;; (let [s (XPointer.trim start)
+  ;;       end_trim (XPointer.trim end)
+  ;;       e (if (= "" end)
+  ;;               s
+  ;;               end_trim
+  ;;               )]
+    (local s (XPointer.trim start))
+    (local end_trim (XPointer.trim end))
+    (local e (if (or (= nil end) (= "" end))
+                 (string.format "/body/DocFragment[%d]" (+ 1 (XPointer.getDocFragment start)))
+                 end_trim
+                 ))
+    (if (XPointer.same-docFragment-p s e)
+        (XPointer.list-xpointers-sameDoc s e)
+        (XPointer.list-xpointers-differentDoc s e document)))
 
 (fn XPointer.append [xpointer part number]
   (.. (XPointer.trim xpointer) "/text()[" part "]." number)
@@ -132,10 +171,13 @@
 
 ;;TODO ugly as fuck
 (fn XPointer.fromUtfPos [beg len base_xp document]
-  ;; (logger.info :fromUtf)
   ;; (logger.info beg)
   ;; (logger.info len)
   (var start (XPointer.trim base_xp))
+  ;; Dirty fix for when we change document
+  ;; TODO find better
+  (when (= nil (document:getNextVisibleChar start))
+    (lua :return))
   (var saw_rb nil)
   (for [i 0 beg]
     (set saw_rb nil)
@@ -143,37 +185,31 @@
     ;; (while (string.find start "/ruby.*/rt")
     (while (string.find start :ruby/rt)
       (set saw_rb :true)
-      (set start (document:getNextVisibleChar start))
-      (logger.info start)
-      (logger.info (document:getTextFromXPointers start (document:getNextVisibleChar start))))
+      (set start (document:getNextVisibleChar start)))
     (when saw_rb
-      (logger.info :hi)
-      (set start (document:getNextVisibleChar start))
-      (set start (document:getNextVisibleChar start))
-      )
-    )
-
-
-    ;; (while (= nil (document:getTextFromXPointers start (document:getNextVisibleChar start)) )
       ;; (logger.info :hi)
-      ;; (set start (document:getNextVisibleChar start)))
+      (set start (document:getNextVisibleChar start))
+      (set start (document:getNextVisibleChar start))))
+  ;; (while (= nil (document:getTextFromXPointers start (document:getNextVisibleChar start)) )
+  ;; (logger.info :hi)
+  ;; (set start (document:getNextVisibleChar start)))
   ;; )
   (var a start)
   (for [i 0 (- len 1)]
     (set saw_rb nil)
     (set start (document:getNextVisibleChar start))
-    (while (or (string.find start :ruby/rt) (string.find start :span)) ;; TODO some times stuff act weird eg page 21 of laika, because of the []?
+    (while (or (string.find start :ruby/rt) (string.find start :span))
+      ;; TODO some times stuff act weird eg page 21 of laika, because of the []?
       (set start (document:getNextVisibleChar start)))
-    (while (= nil (document:getTextFromXPointers start (document:getNextVisibleChar start)) )
+    (while (= nil
+              (document:getTextFromXPointers start
+                                             (document:getNextVisibleChar start)))
       (set saw_rb :true)
       (set start (document:getNextVisibleChar start)))
     (when saw_rb
-      (logger.info :hi)
+      ;; (logger.info :hi)
       (set start (document:getNextVisibleChar start))
-      (set start (document:getNextVisibleChar start))
-      )
-
-    )
+      (set start (document:getNextVisibleChar start))))
   (var b start)
   (values a b))
 

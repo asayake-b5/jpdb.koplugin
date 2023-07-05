@@ -19,6 +19,7 @@
 - Log words in offline mode to mine later when online
 - if api ever allows it, dump dictionary definition in custom definition
 - accound for the word being never forget/blacklisted already
+- update the text after review (reparse the xpointer?)
 - check how the review stuff works for locked/redundant words
 - if mash getnextvisiblechar not work, back to xml parsing
   https://github.com/Phrogz/SLAXML

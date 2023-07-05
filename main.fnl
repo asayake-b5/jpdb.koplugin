@@ -65,9 +65,10 @@
 ;;TODO or edit the thing manually YOLO style
 (fn new_tweak_buttons_func [self popup_dict buttons]
   ;;TODO WHEN FOUND ETC GREY THE BUTTONS AND STUFF IDK
-  (var entry (dictionary.find (?. self.xp-buffer
-                                    (xp.trim self.ui.highlight.selected_text_start_xpointer))
-                                (self.deinflector:deinflect popup_dict.word)))
+  (var entry
+       (dictionary.find (?. self.xp-buffer
+                            (xp.trim self.ui.highlight.selected_text_start_xpointer))
+                        (self.deinflector:deinflect popup_dict.word)))
   (table.insert popup_dict.results 2 (. popup_dict.results 1))
   ;; Duplicate dict to n2
   ;;FIXME doesn't work when only one dict available
@@ -85,9 +86,11 @@
   ;;FIXME slight improvement to the number of dicts, update it by parsing it (it's like "1/2" etc)
   ;; (when popup_dict.displaynb
   ;;   (popup_dict.displaynb_text:setText (+ 1 (tonumber popup_dict.displaynb))))
-  (local add_to_deck (add_to_deck_thing popup_dict (?. (?. entry 1) 1) (?. (?. entry 1) 2)))
-  (local review (review_thing popup_dict (?. (?. entry 1) 1) (?. (?. entry 1) 2)))
-      (table.insert buttons 1 [add_to_deck review])
+  (local add_to_deck
+         (add_to_deck_thing popup_dict (?. (?. entry 1) 1) (?. (?. entry 1) 2)))
+  (local review (review_thing popup_dict (?. (?. entry 1) 1)
+                              (?. (?. entry 1) 2)))
+  (table.insert buttons 1 [add_to_deck review])
   ;; (popup_dict:update)
   )
 
@@ -115,35 +118,99 @@
   (local aa (xp.list-xpointers-between (self.document:getXPointer)
                                        (self.document:getPageXPointer (+ 1 page))
                                        self.ui.document))
-  (self:fill-XPointers-text aa)
+  (logger.info :parse)
   (logger.info aa)
+  (self:fill-XPointers-text aa)
   (client:parseXPointers aa))
 
-(fn Jpdb.merge-xparser-tables [self table]
-  (each [k v (pairs table)]
-    (tset self.xp-buffer k v)))
+(fn Jpdb.merge-xparser-tables [self table1 table2]
+  (each [k v (pairs table1)]
+    (tset table2 k v)))
+
+(fn Jpdb.xpointers-parsed? [self xpointers]
+  (each [k _ (pairs xpointers)]
+    (when (= nil (?. self.xp-buffer k))
+      (lua "return xpointers")))
+  true)
+
+(fn Jpdb.page-parsed? [self page]
+  (self:xpointers-parsed? (self:get-page-XPointers page)))
+
+(fn Jpdb.length-xps [xpointers]
+  (/ (accumulate [sum 0 k v (pairs xpointers)]
+       (+ sum (string.len v))) 3)
+  ;;DIVIDING by 3 for some utf16thingbsidk
+  )
+
+(fn Jpdb.get-a-bunch-of-pages [self page xpointers]
+  (var p (+ 1 page))
+  (while (< (self.length-xps xpointers) 3000)
+    (var xp (self:get-page-XPointers p))
+    (self:fill-XPointers-text xp)
+    (self:merge-xparser-tables xp xpointers)
+    (set p (+ 1 p)))
+  ;; (logger.info xpointers)
+  (client:parseXPointers xpointers))
+
+;; Maybe useless but important for the painto fix
+(fn Jpdb.onCloseDocument [self]
+  (tset self :currentPage nil)
+  (tset self :xp-buffer {}))
+
+(fn Jpdb.xp-buf-len [self]
+(var i 0)
+(each [_ (pairs self.xp-buffer)] (set i (+ i 1)))
+i
+  )
+
+(fn Jpdb.cleanup-buffer [self]
+  (when (> 300 (self:xp-buf-len))
+    (set self.xp-buffer {})
+    )
+  )
 
 ;;TODO  maybe parse a few pages at once, etc
+;;FIXME bug on page 469 of baccano for instance where way more xpointers than normal get created
+;;redo logic of xpointers between, check "isXPointerInDocument"
+;;probably redo list-xpointers-differentDoc
 (fn Jpdb.onPageUpdate [self page]
-  (set self.currentPage page)
-  (self:merge-xparser-tables (self:parsePage page))
-  (logger.info self.xp-buffers))
+  ;;TODO check if page is prev or next, so that we can parse adequately
+  ;; (logger.info (self.document:isXPointerInDocument "/body/DocFragment[45]/body/div/p[114]"))
+  ;; (logger.info (self.document:isXPointerInDocument "/body/DocFragment[45]/body/div/p[115]"))
+  (logger.info :BABAB)
+        (logger.info (self.document:getPageXPointer page))
+      (logger.info (self.document:getPageXPointer (+ 1 page)))
+      (logger.info (self.document:getPageXPointer (+ 2 page)))
+      (logger.info (xp.trim (self.document:getPageXPointer (+ 2 page))))
 
-;; TODO later ignore for now
-;; (fn Jpdb.onPosUpdate [self pos]
-;;   ;; (logger.info "new pos")
-;;   ;; (logger.info pos)
-;;   ;; (logger.info "self.view.doc")
-;;   (logger.info (self.ui.document:getTextFromPositions {:x 0 :y 0} {
-;;                                                                    :x (Screen:getWidth) :y (Screen:getHeight)
-;;                                                                    } true))
-;;   ;; (logger.info (self.ui.document:getXPointer))
-;;   ;;something with xpointer?
-;;   ;;getPageXPointer ?
-;;   ;;gettertfromXPointer ?
-;;   ;;gettextfrompoisitons?
-;;   ;; (logger.info (self.view.document:findText "時間"))
-;;   )
+
+  (let [page_xp (self:page-parsed? page)]
+    (when (not= true page_xp)
+      (self:cleanup-buffer)
+      (logger.info :hiOnPageUpdate)
+      ;; (logger.info page_xp)
+      (self:fill-XPointers-text page_xp)
+      (self:merge-xparser-tables (self:get-a-bunch-of-pages page page_xp)
+                                 self.xp-buffer)))
+  (set self.currentPage page)
+  ;; (self:merge-xparser-tables (self:parsePage page))
+  ;; (logger.info self.)
+  ;; (logger.info (xp.list-xpointers-betwwen "/body/DocFragment[15]"))
+  ;; TODO later ignore for now
+  ;; (fn Jpdb.onPosUpdate [self pos]
+  ;;   ;; (logger.info "new pos")
+  ;;   ;; (logger.info pos)
+  ;;   ;; (logger.info "self.view.doc")
+  ;;   (logger.info (self.ui.document:getTextFromPositions {:x 0 :y 0} {
+  ;;                                                                    :x (Screen:getWidth) :y (Screen:getHeight)
+  ;;                                                                    } true))
+  ;;   ;; (logger.info (self.ui.document:getXPointer))
+  ;;   ;;something with xpointer?
+  ;;   ;;getPageXPointer ?
+  ;;   ;;gettertfromXPointer ?
+  ;;   ;;gettextfrompoisitons?
+  ;;   ;; (logger.info (self.view.document:findText "時間"))
+  )
 
 (fn Jpdb.paintRect [self bb x y v jpdb-state]
   (var lighten-factor nil)
@@ -168,16 +235,18 @@
     ;; (dictionary.JPDBToDict (. words 1))
     ;;TODO (when xpointer in page etc)
     ;;isXPointerInCurrentPage = function() --[[..skipped..]] end --[[function: 0x7f71499d7270]],
-    (each [i word (ipairs words)]
-      (let [start (?. word 2)
-            len (?. word 3)
-            token (?. word 1)
-            jpdb_state (client.parse-state (?. token 7))
-            (beg_xp end_xp) (xp.fromUtfPos start len xpointer self.document)]
-        (local rect
-               (self.ui.document:getScreenBoxesFromPositions beg_xp end_xp true))
-        (when rect
-          (each [_ v (ipairs rect)]
-            (self:paintRect bb x y v jpdb_state)))))))
+    (when (self.ui.document:isXPointerInCurrentPage xpointer)
+      (each [i word (ipairs words)]
+        (let [start (?. word 2)
+              len (?. word 3)
+              token (?. word 1)
+              jpdb_state (client.parse-state (?. token 7))
+              (beg_xp end_xp) (xp.fromUtfPos start len xpointer self.document)]
+          (local rect
+                 (self.ui.document:getScreenBoxesFromPositions beg_xp end_xp
+                                                               true))
+          (when rect
+            (each [_ v (ipairs rect)]
+              (self:paintRect bb x y v jpdb_state))))))))
 
 Jpdb

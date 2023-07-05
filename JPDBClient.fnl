@@ -81,6 +81,7 @@
                  :url "https://jpdb.io/api/v1/parse"}]
     (local (code headers status) (socket.skip 1 (http.request request)))
     (local result (json.decode (table.concat output-sink)))
+    ;; (logger.info result)
     (local return {})
     (each [i xp (ipairs sorted)]
       (let [vocab_list result.vocabulary
