@@ -7,9 +7,9 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: https://gitea.com/actions/setup-go@v3
+      - uses: https://github.com/actions/setup-go@v4
         with:
-          go-version: 1.20
+          go-version: '>1.20.1'
       - uses: https://gitea.com/actions/checkout@v3
       - name: apt update
         run:
@@ -33,9 +33,10 @@ jobs:
       - name: zip up
         run:
           zip jpdb.koplugin.zip *.lua yomichan-deinflect.json htmlparser
-      - name: release
-        uses: https://gitea.asaserv.ovh/bastien_v/release-action@main
+      - name: release gitea
+        id: use-go-action
+        uses: https://gitea.com/chmanie/release-action@main
         with:
           files: |-
-            jpdb.koplugin.zip
+            *
           api_key: '${{secrets.RELEASE_TOKEN}}'

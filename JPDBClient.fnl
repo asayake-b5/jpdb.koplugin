@@ -52,7 +52,24 @@
     (local result (json.decode (table.concat output-sink)))
     (logger.info result)))
 
-;;TODO refactor OR NOT because maybe we can save everything
+(fn JPDBClient.set-sentence [self vid sid sentence]
+  (let [output-sink {}
+        json-payload (json.encode {: vid
+                                   : sid
+                                   : sentence
+
+                                   })
+        request {:headers {:Accept :application/json
+                           :Authorization (.. "Bearer " config.api_key)
+                           :Content-Type :application/json}
+                 :method :POST
+                 :sink (ltn12.sink.table output-sink)
+                 :source (ltn12.source.string json-payload)
+                 :url "https://jpdb.io/api/v1/set-card-sentence"}]
+    (local (code headers status) (socket.skip 1 (http.request request)))
+    (local result (json.decode (table.concat output-sink)))
+    (logger.info result)))
+
 (fn JPDBClient.parseXPointers [self xPointers]
   (local xp-array (JPDBClient.makeJPDBArray xPointers))
   (local sorted (sortJPDBTable xPointers))
