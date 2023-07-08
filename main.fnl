@@ -18,6 +18,7 @@
 (local Deinflector (require :deinflector))
 (local AddToDeckWidget (require :adddeckwidget))
 (local ReviewWidget (require :reviewwidget))
+(local util (require :frontend/util))
 
 (local SingleInstanceDeinflector (Deinflector:new {}))
 
@@ -42,9 +43,10 @@
         :text (_ "Hello World")}))
 
 ;; TODO functionnal program this, with function, id etc parameters
-(fn add_to_deck_thing [popup_dict vid sid]
+(fn add_to_deck_thing [popup_dict vid sid sentence]
   {:callback (fn []
-               (UIManager:show (AddToDeckWidget:init popup_dict vid sid)))
+               (UIManager:show (AddToDeckWidget:init popup_dict vid sid
+                                                     sentence)))
    :font_bold true
    :id :add_to_deck
    :text (_ "Add to deck")})
@@ -59,21 +61,72 @@
    ;;UIManager:show(self:show_config_widget(popup_dict)) end,
    })
 
+(fn split-up [sentence]
+    (local indices [1])
+    (local result [])
+    (let [chars (util.splitToChars sentence)]
+      (each [k v (ipairs chars)]
+        (when (or (= v "？") (= v "。") (= v "！"))
+          (table.insert indices k)
+          )
+
+      )
+      (each [i start (ipairs indices) &until (= i (length indices))]
+        (let [end (. indices (+ i 1))
+              start (if (> 1 i) (+ 1 start) start)
+              ]
+          (table.insert result (table.concat chars "" (+ 1 start) end))
+          )
+
+        )
+      result
+
+    ;; (each [sub (string.gmatch sentence "([^？]+)")]
+    ;; (logger.info (util.splitToChars sentence))
+    ;; (logger.info (table.concat (util.splitToChars sentence))))
+  ))
+
+
+;;TODO trim sentence (especially quote characters and stuff)
+;;TODO if sentence is super short add sentence after?
+(fn compute-sentence [xpointer selected-text document]
+  (let [sentence (xp.getTextFromXPointer xpointer document)
+        sentences (split-up sentence)]
+    (each [_ s (ipairs sentences)]
+    (when (string.find s selected-text)
+      (lua "return s")
+      )
+    ))
+  ;; :baba
+    ;; (each [sub ( util.splitToChars sentence)]
+    ;;   (logger.info sub)))
+  ;; (let [sentence (?. )])
+  "")
+
 ;;TODO if word is blacklist make word be remove from blacklist etc
 ;;TODO same with never forget
 ;;TODO reparse Xpointer after having done a review (to update the change)
 ;;TODO or edit the thing manually YOLO style
 (fn new_tweak_buttons_func [self popup_dict buttons]
   ;;TODO WHEN FOUND ETC GREY THE BUTTONS AND STUFF IDK
-  (var entry
-       (dictionary.find (?. self.xp-buffer
-                            (xp.trim self.ui.highlight.selected_text_start_xpointer))
-                        (self.deinflector:deinflect popup_dict.word)))
-  (table.insert popup_dict.results 2 (. popup_dict.results 1))
-  ;; Duplicate dict to n2
-  ;;FIXME doesn't work when only one dict available
-  ;;works if you press the thing instead of the button which is just locked, maybe something is doable to unclog it
-  (tset popup_dict.results 2 (dictionary.JPDBToDict entry))
+  (let [xpointer (xp.trim self.ui.highlight.selected_text_start_xpointer)
+        entries (?. self.xp-buffer xpointer)
+        deinflected (self.deinflector:deinflect popup_dict.word)
+        entry (dictionary.find entries deinflected)
+        subentry (?. entry 1)
+        vid (?. subentry 1)
+        sid (?. subentry 2)
+        selected-text self.ui.highlight.selected_text.text
+        sentence (compute-sentence xpointer selected-text self.ui.document)
+        add-to-deck-btn (add_to_deck_thing popup_dict vid sid sentence)
+        review-btn (review_thing popup_dict vid sid)]
+    (logger.info sentence)
+    (table.insert popup_dict.results 2 (. popup_dict.results 1))
+    ;; Duplicate dict to n2
+    ;;FIXME doesn't work when only one dict available
+    ;;works if you press the thing instead of the button which is just locked, maybe something is doable to unclog it
+    (tset popup_dict.results 2 (dictionary.JPDBToDict entry))
+    (table.insert buttons 1 [add-to-deck-btn review-btn]))
   ;;   ;; (logger.info (self.ui.highlight:getSelectedWordContext 15 ) ;;be careful, returns 2 thinigies?
   ;;   ;; )
   ;;   ;;   if not settings.enabled and not is_manual then return end
@@ -86,11 +139,6 @@
   ;;FIXME slight improvement to the number of dicts, update it by parsing it (it's like "1/2" etc)
   ;; (when popup_dict.displaynb
   ;;   (popup_dict.displaynb_text:setText (+ 1 (tonumber popup_dict.displaynb))))
-  (local add_to_deck
-         (add_to_deck_thing popup_dict (?. (?. entry 1) 1) (?. (?. entry 1) 2)))
-  (local review (review_thing popup_dict (?. (?. entry 1) 1)
-                              (?. (?. entry 1) 2)))
-  (table.insert buttons 1 [add_to_deck review])
   ;; (popup_dict:update)
   )
 
@@ -158,32 +206,15 @@
   (tset self :xp-buffer {}))
 
 (fn Jpdb.xp-buf-len [self]
-(var i 0)
-(each [_ (pairs self.xp-buffer)] (set i (+ i 1)))
-i
-  )
+  (var i 0)
+  (each [_ (pairs self.xp-buffer)] (set i (+ i 1)))
+  i)
 
 (fn Jpdb.cleanup-buffer [self]
   (when (> 300 (self:xp-buf-len))
-    (set self.xp-buffer {})
-    )
-  )
+    (set self.xp-buffer {})))
 
-;;TODO  maybe parse a few pages at once, etc
-;;FIXME bug on page 469 of baccano for instance where way more xpointers than normal get created
-;;redo logic of xpointers between, check "isXPointerInDocument"
-;;probably redo list-xpointers-differentDoc
 (fn Jpdb.onPageUpdate [self page]
-  ;;TODO check if page is prev or next, so that we can parse adequately
-  ;; (logger.info (self.document:isXPointerInDocument "/body/DocFragment[45]/body/div/p[114]"))
-  ;; (logger.info (self.document:isXPointerInDocument "/body/DocFragment[45]/body/div/p[115]"))
-  (logger.info :BABAB)
-        (logger.info (self.document:getPageXPointer page))
-      (logger.info (self.document:getPageXPointer (+ 1 page)))
-      (logger.info (self.document:getPageXPointer (+ 2 page)))
-      (logger.info (xp.trim (self.document:getPageXPointer (+ 2 page))))
-
-
   (let [page_xp (self:page-parsed? page)]
     (when (not= true page_xp)
       (self:cleanup-buffer)
@@ -192,30 +223,11 @@ i
       (self:fill-XPointers-text page_xp)
       (self:merge-xparser-tables (self:get-a-bunch-of-pages page page_xp)
                                  self.xp-buffer)))
-  (set self.currentPage page)
-  ;; (self:merge-xparser-tables (self:parsePage page))
-  ;; (logger.info self.)
-  ;; (logger.info (xp.list-xpointers-betwwen "/body/DocFragment[15]"))
-  ;; TODO later ignore for now
-  ;; (fn Jpdb.onPosUpdate [self pos]
-  ;;   ;; (logger.info "new pos")
-  ;;   ;; (logger.info pos)
-  ;;   ;; (logger.info "self.view.doc")
-  ;;   (logger.info (self.ui.document:getTextFromPositions {:x 0 :y 0} {
-  ;;                                                                    :x (Screen:getWidth) :y (Screen:getHeight)
-  ;;                                                                    } true))
-  ;;   ;; (logger.info (self.ui.document:getXPointer))
-  ;;   ;;something with xpointer?
-  ;;   ;;getPageXPointer ?
-  ;;   ;;gettertfromXPointer ?
-  ;;   ;;gettextfrompoisitons?
-  ;;   ;; (logger.info (self.view.document:findText "時間"))
-  )
+  (set self.currentPage page))
 
 (fn Jpdb.paintRect [self bb x y v jpdb-state]
   (var lighten-factor nil)
   (var underline nil)
-  ;; (when (= nil lighten-factor) (logger.info "nil"))
   (match jpdb-state
     :known (lua :return)
     :never-forget (lua :return)

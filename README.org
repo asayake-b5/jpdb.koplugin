@@ -24,6 +24,8 @@
 - if mash getnextvisiblechar not work, back to xml parsing
   https://github.com/Phrogz/SLAXML
   http://lua-users.org/wiki/LuaXml
+- coroutines for faster page turns / API calls?
+- infomessage when the api request is wrong (cookie bad, or something)
 
 * License
 GPL3.0, like the rest of koreader.
