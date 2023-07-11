@@ -2,6 +2,8 @@ name: compile_release
 
 on:
   push:
+    tags:
+      - "*"
 
 jobs:
   release:
@@ -34,9 +36,14 @@ jobs:
         run:
           zip jpdb.koplugin.zip *.lua yomichan-deinflect.json htmlparser
       - name: release gitea
-        id: use-go-action
         uses: https://gitea.com/chmanie/release-action@main
         with:
           files: |-
-            *
+            jpdb.koplugin.zip
           api_key: '${{secrets.RELEASE_TOKEN}}'
+      - name: release github
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "jpdb.koplugin.zip"
+          allowUpdates: true
+          token: ${{secrets.GH_TOKEN2}}
