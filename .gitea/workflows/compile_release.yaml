@@ -14,19 +14,19 @@ jobs:
       - name: apt update
         run:
           apt update
-      # - name: setup luajit
-      #   uses: https://github.com/leafo/gh-actions-lua@v10
-      #   with:
-      #     luaVersion: "luajit-2.1.0-beta3"
-      # - name: download fennel
-      #   run:
-      #     curl -o fennel https://fennel-lang.org/downloads/fennel-1.3.0
-      # - name: make fennel executable
-      #   run:
-      #     chmod +x fennel
-      # - name: compile
-      #   run:
-      #     for file in *.fnl; do ./fennel --compile $file > $(basename $file .fnl).lua; done
+      - name: setup luajit
+        uses: https://github.com/leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "luajit-2.1.0-beta3"
+      - name: download fennel
+        run:
+          curl -o fennel https://fennel-lang.org/downloads/fennel-1.3.0
+      - name: make fennel executable
+        run:
+          chmod +x fennel
+      - name: compile
+        run:
+          for file in *.fnl; do ./fennel --compile $file > $(basename $file .fnl).lua; done
       - name: install zip
         run:
           apt install zip
