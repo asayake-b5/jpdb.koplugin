@@ -42,10 +42,10 @@ jobs:
         with:
           files: |-
             jpdb.koplugin.zip
-          api_key: '${{secrets.RELEASE_TOKEN}}'
+          api_key: '${{ secrets.RELEASE_TOKEN }}'
       - name: release github
         uses: ncipollo/release-action@v1
         with:
           artifacts: "jpdb.koplugin.zip"
           allowUpdates: true
-          token: "${{secrets.GH_TOKEN2}}"
+          token: "${{ secrets.GH_TOKEN2 }}"
