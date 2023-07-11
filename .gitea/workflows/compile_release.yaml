@@ -43,16 +43,15 @@ jobs:
           files: |-
             jpdb.koplugin.zip
           api_key: '${{ secrets.RELEASE_TOKEN }}'
-      - name: release github
-        uses: ncipollo/release-action@v1
+      # - name: release github
+      #   uses: ncipollo/release-action@v1
+      #   with:
+      #     artifacts: "jpdb.koplugin.zip"
+      #     allowUpdates: true
+      #     token: '${{ secrets.GH_TOKEN2 }}'
+      - name: Release
+        uses: softprops/action-gh-release@v1
         with:
-          artifacts: "jpdb.koplugin.zip"
-          allowUpdates: true
-          token: '${{ secrets.GH_TOKEN2 }}'
-      #       - name: Release
-        # uses: softprops/action-gh-release@v1
-        # if: startsWith(github.ref, 'refs/tags/')
-        # with:
-        #   token: ${{ secrets.GH_TOKEN }}
-        # env:
-        #   GITHUB_REPOSITORY: asayake-b5/jpdb.koplugin
+          token: ${{ secrets.GH_TOKEN }}
+        env:
+          GITHUB_REPOSITORY: asayake-b5/jpdb.koplugin
