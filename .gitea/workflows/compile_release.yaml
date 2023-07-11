@@ -54,6 +54,6 @@ jobs:
         with:
           token: ${{ secrets.GH_TOKEN }}
           files: |
-            - jpdb.koplugin.zip
+            jpdb.koplugin.zip
         env:
           GITHUB_REPOSITORY: asayake-b5/jpdb.koplugin
